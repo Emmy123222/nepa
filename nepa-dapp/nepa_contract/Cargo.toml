@@ -8,6 +8,9 @@ crate-type = ["cdylib"] # This tells Rust to compile to WebAssembly
 
 [dependencies]
 soroban-sdk = "20.0.0"  # The Stellar Smart Contract SDK
+soroban-fixed-point-math = "1.0.0"  # Fixed-point arithmetic for price calculations
+serde = { version = "1.0", default-features = false }  # Serialization for oracle data
+serde-json-core = "0.5"  # JSON parsing for oracle responses
 
 [profile.release]
 opt-level = "z"         # Optimizes the contract for small size
