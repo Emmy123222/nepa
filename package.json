@@ -70,11 +70,11 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "test:unit": "jest tests/unit",
-    "test:integration": "jest tests/integration",
+    "test:unit": "jest tests/unit --watchAll=false",
+    "test:integration": "jest tests/integration --watchAll=false",
     "test:e2e": "playwright test",
-    "lint": "eslint . --ext .ts,.js",
-    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "lint": "eslint . --ext .ts,.js,.tsx,.jsx --fix",
+    "lint:check": "eslint . --ext .ts,.js,.tsx,.jsx",
     "type-check": "tsc --noEmit"
   }
 }

@@ -1,4 +1,4 @@
-import { formatCurrency, formatDate, formatNumber } from '../utils/localization';
+import { formatCurrency, formatDate, formatNumber } from '../../src/utils/localization';
 
 describe('Localization Utilities', () => {
   test('formatCurrency should format correctly', () => {
