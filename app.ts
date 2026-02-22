@@ -1,38 +1,67 @@
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-import { apiLimiter } from './middleware/rateLimiter';
+import { apiLimiter, ddosDetector, checkBlockedIP, ipRestriction, progressiveLimiter, authLimiter } from './middleware/rateLimiter';
 import { configureSecurity } from './middleware/security';
 import { apiKeyAuth } from './middleware/auth';
 import { requestLogger } from './middleware/logger';
+import { errorTracker } from './middleware/abuseDetection';
 import { swaggerSpec } from './swagger';
 import { upload } from './middleware/upload';
 import { uploadDocument } from './controllers/DocumentController';
 import { getDashboardData, generateReport, exportData } from './controllers/AnalyticsController';
+import { applyPaymentSecurity, processPayment, getPaymentHistory, validatePayment } from './controllers/PaymentController';
 
 const app = express();
 
 // 1. Logging (should be first to capture all requests)
 app.use(requestLogger);
 
-// 2. Security Headers & CORS
+// 2. DDoS Protection and IP Blocking
+app.use(ddosDetector);
+app.use(checkBlockedIP);
+app.use(ipRestriction);
+
+// 3. Security Headers & CORS
 configureSecurity(app);
 
-// 3. Body Parsing
+// 4. Body Parsing
 app.use(express.json({ limit: '10kb' })); // Limit body size for security
 
-// 4. Rate Limiting
+// 5. Progressive Rate Limiting
+app.use('/api', progressiveLimiter);
+
+// 6. General API Rate Limiting
 app.use('/api', apiLimiter);
 
-// 5. API Documentation
+// 7. Error tracking for abuse detection
+app.use(errorTracker);
+
+// 8. API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// 6. Public Routes
+// 9. Public Routes
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP' });
 });
 
-// 7. Protected API Routes
+// 10. Protected API Routes
 app.use('/api', apiKeyAuth);
+
+// Authentication endpoints with stricter rate limiting
+app.post('/api/auth/login', authLimiter, (req, res) => {
+  // Login logic here
+  res.json({ message: 'Login endpoint' });
+});
+
+app.post('/api/auth/register', authLimiter, (req, res) => {
+  // Registration logic here
+  res.json({ message: 'Register endpoint' });
+});
+
+// Payment endpoints with enhanced security
+app.post('/api/payment/process', ...applyPaymentSecurity, processPayment);
+app.get('/api/payment/history', apiKeyAuth, getPaymentHistory);
+app.post('/api/payment/validate', ...applyPaymentSecurity, validatePayment);
 
 // Example protected route
 /**
