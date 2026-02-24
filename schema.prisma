@@ -202,6 +202,9 @@ model Webhook {
   retryDelaySeconds Int      @default(60)
   timeoutSeconds    Int      @default(30)
   headers           Json?    // Custom headers
+  authType          String   @default("NONE") // NONE, API_KEY, BEARER_TOKEN, BASIC_AUTH, OAUTH2
+  authCredentials   Json?    // Hashed authentication credentials
+  securityConfig    Json?    // Security configuration (IP whitelist, rate limiting, etc.)
   userId            String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -209,10 +212,12 @@ model Webhook {
   user              User     @relation(fields: [userId], references: [id])
   hookedEvents      WebhookEvent[]
   logs              WebhookLog[]
+  queuedEvents      WebhookQueue[]
 
   @@index([userId])
   @@index([isActive])
   @@index([createdAt])
+  @@index([authType])
 }
 
 model WebhookEvent {
@@ -263,6 +268,38 @@ model WebhookLog {
   webhook     Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@index([webhookId])
+}
+
+model WebhookQueue {
+  id              String   @id @default(uuid())
+  webhookId       String
+  eventType       String
+  payload         Json
+  priority        String   @default("NORMAL") // LOW, NORMAL, HIGH, CRITICAL
+  status          String   @default("QUEUED") // QUEUED, PROCESSING, DELIVERED, FAILED, CANCELLED
+  scheduledFor    DateTime @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  attempts        Int      @default(0)
+  maxRetries      Int      @default(3)
+  retryDelay      Int      @default(60)
+  timeoutSeconds  Int      @default(30)
+  lastStatusCode  Int?
+  lastError       String?
+  totalDuration   Int?
+  headers         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  webhook         Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledFor])
+  @@index([createdAt])
+}
+
 model UserSession {
   id           String   @id @default(uuid())
   userId       String
