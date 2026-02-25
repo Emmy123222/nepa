@@ -1,5 +1,5 @@
 import { logger } from './logger';
-import prisma from './prismaClient';
+import prisma from '../src/config/prismaClient';
 
 // Type definitions for Prisma models
 interface WebhookEvent {
@@ -447,6 +447,56 @@ class WebhookMonitor {
       };
     } catch (error) {
       logger.error(`Failed to generate performance report: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get webhook statistics (alias for getUserMetrics for compatibility)
+   */
+  async getWebhookStats(webhookId: string): Promise<{
+    totalEvents: number;
+    successfulDeliveries: number;
+    failedDeliveries: number;
+    pendingDeliveries: number;
+    successRate: number;
+    failureRate: number;
+    averageResponseTime: number;
+  }> {
+    try {
+      const events = await prisma.webhookEvent.findMany({
+        where: { webhookId },
+        include: {
+          deliveryAttempts: true,
+        },
+      });
+
+      const totalEvents = events.length;
+      const successfulDeliveries = events.filter((e: any) => e.status === 'DELIVERED').length;
+      const failedDeliveries = events.filter((e: any) => e.status === 'FAILED').length;
+      const pendingDeliveries = events.filter((e: any) => e.status === 'PENDING').length;
+
+      const successRate = totalEvents > 0 ? (successfulDeliveries / totalEvents) * 100 : 0;
+      const failureRate = totalEvents > 0 ? (failedDeliveries / totalEvents) * 100 : 0;
+
+      const totalTime = events.reduce((sum: number, event: any) => {
+        const avgTime = event.deliveryAttempts.reduce((sum: number, attempt: any) => sum + (attempt.duration || 0), 0) / (event.deliveryAttempts.length || 1);
+        return sum + avgTime;
+      }, 0);
+
+      const averageResponseTime = events.length > 0 ? totalTime / events.length : 0;
+
+      return {
+        totalEvents,
+        successfulDeliveries,
+        failedDeliveries,
+        pendingDeliveries,
+        successRate,
+        failureRate,
+        averageResponseTime,
+      };
+    } catch (error) {
+      logger.error(`Failed to get webhook stats: ${error}`);
       throw error;
     }
   }

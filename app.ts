@@ -48,8 +48,8 @@ app.use(express.json({ limit: '10kb' })); // Limit body size for security
 // 5. Progressive Rate Limiting
 app.use('/api', progressiveLimiter);
 
-// 6. General API Rate Limiting
-app.use('/api', apiLimiter);
+// 6. Advanced Rate Limiting (replaces basic rate limiting)
+app.use('/api', advancedRateLimiter);
 
 // 7. Error tracking for abuse detection
 app.use(abuseDetector);
@@ -59,7 +59,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api-docs/v1', swaggerUi.serve, swaggerUi.setup(getVersionedSwaggerSpec('v1')));
 app.use('/api-docs/v2', swaggerUi.serve, swaggerUi.setup(getVersionedSwaggerSpec('v2')));
 
-// 9. Enhanced Health Check
+// 10. Enhanced Health Check
 app.get('/health', (req, res) => {
   const healthStatus = performanceMonitor.getHealthStatus();
   const memoryUsage = performanceMonitor.getMemoryUsage();
