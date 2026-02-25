@@ -29,8 +29,8 @@ export class BlockchainManager {
     
     // Set up provider event listeners
     if (provider.onTransactionUpdate) {
-      provider.onTransactionUpdate((hash: string, tx: TransactionResponse) => {
-        this.emit('transactionUpdate', { hash, transaction: tx, network: provider.network });
+      provider.onTransactionUpdate('default', (tx: TransactionResponse) => {
+        this.emit('transactionUpdate', { hash: tx.hash, transaction: tx, network: provider.network });
       });
     }
     
