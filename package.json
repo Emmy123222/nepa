@@ -1,10 +1,18 @@
 {
   "dependencies": {
+    "@apollo/server": "^4.9.5",
+    "@apollo/server-plugin-landing-page-graphql-playground": "^4.1.1",
+    "@graphql-tools/schema": "^10.0.0",
+    "@graphql-tools/utils": "^10.0.0",
+    "@graphql-upload/graphql-upload": "^16.0.2",
     "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^14.5.0",
     "amqplib": "^0.10.3",
     "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
+    "graphql": "^16.8.1",
+    "graphql-subscriptions": "^2.0.0",
+    "graphql-ws": "^5.14.3",
     "rate-limit-redis": "^4.2.0",
     "ioredis": "^5.3.2",
     "helmet": "^7.1.0",
@@ -43,7 +51,8 @@
     "@opentelemetry/instrumentation-http": "^0.45.0",
     "@opentelemetry/instrumentation-express": "^0.34.0",
     "@prisma/instrumentation": "^5.6.0",
-    "prom-client": "^15.0.0"
+    "prom-client": "^15.0.0",
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
