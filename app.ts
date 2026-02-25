@@ -5,15 +5,47 @@ import { configureSecurity } from './middleware/security';
 import { apiKeyAuth } from './middleware/auth';
 import { loggingMiddleware, setupGlobalErrorHandling, errorTracker } from './middleware/logger';
 import { errorTracker as abuseDetector } from './middleware/abuseDetection';
-import { apiVersionMiddleware, setApiVersion, versionUsageAnalyticsMiddleware } from './middleware/apiVersion';
-import { createV1Router, createV2Router } from './routes/apiVersions';
-import { apiVersioningConfig } from './config/api-versioning';
-import { swaggerSpec, getVersionedSwaggerSpec } from './swagger';
-import { performanceMonitor } from './services/performanceMonitoring';
-import analyticsService from './services/analytics';
+import { swaggerSpec } from './swagger';
+import { upload } from './middleware/upload';
+import { uploadDocument } from './controllers/DocumentController';
+import { getDashboardData, generateReport, exportData } from './controllers/AnalyticsController';
+import { applyPaymentSecurity, processPayment, getPaymentHistory, validatePayment } from './controllers/PaymentController';
+import { setupRateLimitRoutes } from './routes/rateLimitRoutes';
+import { initializeCacheSystem } from './services/cache/CacheInitializer';
+import { cacheHealthMiddleware, apiCacheMiddleware, cacheInvalidationMiddleware } from './middleware/cacheMiddleware';
+import cacheRoutes from './routes/cacheRoutes';
 import { logger } from './services/logger';
 
+// Mock services for now - replace with actual implementations
+const performanceMonitor = {
+  getHealthStatus: () => ({ status: 'healthy' }),
+  getMemoryUsage: () => ({ heapUsed: 0, heapTotal: 0, external: 0 }),
+  getRequestMetrics: (limit: number) => [],
+  getCustomMetrics: (limit: number) => []
+};
+
+const analyticsService = {
+  getAnalyticsData: () => ({ userEvents: [], activeUsers: 0 })
+};
+
 const app = express();
+
+// Initialize cache system on startup
+initializeCacheSystem().then(result => {
+  if (result.success) {
+    logger.info('Cache system initialized successfully', {
+      initializationTime: result.metrics.initializationTime,
+      services: result.services
+    });
+  } else {
+    logger.error('Cache system initialization failed', {
+      errors: result.errors,
+      warnings: result.warnings
+    });
+  }
+}).catch(error => {
+  logger.error('Cache system initialization error:', error);
+});
 
 // Initialize logging and monitoring
 logger.info('Application starting up', { 
@@ -54,12 +86,18 @@ app.use('/api', advancedRateLimiter);
 // 7. Error tracking for abuse detection
 app.use(abuseDetector);
 
-// 8. API Documentation (default + versioned)
+// 8. Setup rate limiting routes
+setupRateLimitRoutes(app);
+
+// 9. Cache health check middleware
+app.use(cacheHealthMiddleware());
+
+// 10. API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api-docs/v1', swaggerUi.serve, swaggerUi.setup(getVersionedSwaggerSpec('v1')));
 app.use('/api-docs/v2', swaggerUi.serve, swaggerUi.setup(getVersionedSwaggerSpec('v2')));
 
-// 10. Enhanced Health Check
+// 11. Enhanced Health Check
 app.get('/health', (req, res) => {
   const healthStatus = performanceMonitor.getHealthStatus();
   const memoryUsage = performanceMonitor.getMemoryUsage();
@@ -109,5 +147,12 @@ app.use('/api', apiVersionMiddleware, versionUsageAnalyticsMiddleware);
 app.use('/api/v1', setApiVersion('v1'), createV1Router());
 app.use('/api/v2', setApiVersion('v2'), createV2Router());
 app.use('/api', setApiVersion('v2'), createV2Router()); // default unversioned /api/* -> v2
+
+export default app;
+// Cache Management Routes (Admin only)
+app.use('/api/cache', cacheRoutes);
+
+// Add cache middleware to existing routes for better performance
+// Note: These would be added to existing route definitions in a real implementation
 
 export default app;
